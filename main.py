@@ -9,8 +9,10 @@ import json
 import sys
 from urllib.parse import urlparse
 
-from decision import DONE_MARGIN, LayaMlxDecisionEngine
+from decision import LayaMlxDecisionEngine
 from walker import Walker, extract_candidates, state_digest
+
+REACHED = 0.5
 
 
 def main() -> int:
@@ -42,25 +44,27 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
     with open(args.trace, "w") as trace:
         for step in range(args.max_steps):
             candidates = extract_candidates(representation, uri, descriptors, visited)
-            state = build_state(uri, representation, history, descriptors)
+            state = build_state(uri, representation, history)
             decision = engine.decide(args.goal, state, candidates) if candidates else None
-            stop = (
-                decision is None
-                or decision["done_probability"] > decision["confidence"] + DONE_MARGIN
-            )
+            reason = _stop_reason(decision)
             record = {
                 "step": step,
                 "uri": uri,
                 "goal": args.goal,
+                "state": state,
                 "candidates": [
-                    {"rel": c.rel, "label": c.label, "href": c.href} for c in candidates
+                    {"rel": c.rel, "label": c.label, "href": c.href, "description": c.description}
+                    for c in candidates
                 ],
                 "decision": decision,
             }
-            if stop:
-                record["result"] = "goal_reached"
+            if reason:
+                reached = _goal_reached(decision) if decision is not None else False
+                record["result"] = "goal_reached" if reached else "exhausted"
+                record["stop_reason"] = reason
                 trace.write(json.dumps(record, ensure_ascii=False) + "\n")
-                print(f"goal reached at {uri} (step {step + 1}/{args.max_steps})")
+                outcome = "goal reached" if reached else "traversal exhausted"
+                print(f"{outcome} at {uri} ({reason}, step {step + 1}/{args.max_steps})")
                 return
             chosen = next(c for c in candidates if c.label == decision["choice"])
             visited.add(uri)
@@ -69,18 +73,33 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
             uri = chosen.href
             record["followed"] = chosen.href
             trace.write(json.dumps(record, ensure_ascii=False) + "\n")
-            print(f"step {step + 1}: {uri}")
+            print(f"step {step + 1}: {uri} (choice={decision['choice']} conf={decision['confidence']:.3f} reached={decision['reached_probability']:.3f})")
         print(f"max steps ({args.max_steps}) reached at {uri}")
 
 
-def build_state(uri: str, representation: dict, history: list[str], descriptors: dict[str, dict]) -> str:
-    """State is the current URI, visited URIs, and a semantic digest: body
-    values plus the descriptor language of what the page links to and embeds.
-    The bare rel vocabulary is excluded (Spike: it sways the choice toward
-    itself); the descriptor title/doc is what tells the model what a resource
-    means, and a resource's meaning is its descriptors, not its field values."""
+def build_state(uri: str, representation: dict, history: list[str]) -> str:
+    """State is the current URI, visited URIs, and the body values. Neither the
+    rel vocabulary nor the descriptor language of the page is included
+    (docs/laya-mlx.md, Spike: vocabulary in the state sways the choice toward
+    itself)."""
     visited = " Visited: " + ", ".join(history) if history else ""
-    return f"At {uri}.{visited} {state_digest(representation, descriptors)}".strip()
+    return f"At {uri}.{visited} {state_digest(representation)}".strip()
+
+
+def _stop_reason(decision: dict | None) -> str | None:
+    """Stop when nothing is left to open, or when the page answers that the
+    goal is already reached. The confidence cannot gate following: the right
+    candidate scores confidence 0.053 among two options and 1.0 among one,
+    because it is calibrated per answer and not per candidate (measured)."""
+    if decision is None:
+        return "no candidates"
+    if decision["reached_probability"] > REACHED:
+        return f"reached {decision['reached_probability']:.3f} > {REACHED:.3f}"
+    return None
+
+
+def _goal_reached(decision: dict) -> bool:
+    return decision["reached_probability"] > REACHED
 
 
 if __name__ == "__main__":

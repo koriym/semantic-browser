@@ -5,10 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 
 MAX_STATE_CHARS = 1500
-# The NULP headroom is measured on the English checkpoint: a choice of p=0.938
-# still reports noul=0.06, so an exact stop at 0.5 would end every successful
-# traversal as "not reached".
-DONE_MARGIN = 0.20
 
 
 @dataclass(frozen=True)
@@ -25,8 +21,8 @@ class DecisionEngine(ABC):
     def decide(self, goal: str, state: str, candidates: list[Candidate]) -> dict[str, Any]:
         """Pick the candidate that best advances the goal.
 
-        Returns {"choice": rel, "confidence": float, "probabilities": {rel: p}}.
-        An empty list means the goal is considered reached.
+        Returns the choice with its confidence and probability map, plus the
+        NULP: the probability that the goal is already reached.
         """
 
 
@@ -44,7 +40,7 @@ class LayaMlxDecisionEngine(DecisionEngine):
                 "instructions": "Which link should I follow next?",
                 "criteria": {c.label: c.description for c in candidates},
             },
-            "done": {
+            "reached": {
                 "type": "noul",
                 "instructions": "Has the goal already been reached?",
             },
@@ -52,8 +48,7 @@ class LayaMlxDecisionEngine(DecisionEngine):
         state_with_goal = f"{state} Goal: {goal}"
         result = self._agent.predict(state_with_goal, questions)
         answer = result["answers"]["rel"]
-        done = result["answers"]["done"]["noul"] if candidates else 1.0
-        answer["done_probability"] = done
+        answer["reached_probability"] = result["answers"]["reached"]["noul"]
         return answer
 
 

@@ -81,7 +81,8 @@ def extract_candidates(
                     rel=rel,
                     label=f"{rel}_{index}",
                     href=href,
-                    description=identify(rel, resource),
+                    description=intent(rel, resource, descriptors)
+                    or _latinize(" ".join(str(v) for v in resource.values() if isinstance(v, (str, int, float)))),
                 )
             )
     return candidates
@@ -97,33 +98,34 @@ def describe(rel: str, descriptors: dict[str, dict]) -> str:
     return _latinize(text)
 
 
-def identify(rel: str, resource: dict) -> str:
-    """The candidate's own sentence: what it is, and what distinguishes it.
-    A bare value per body field discriminates best (measured: p=0.938 vs 0.56
-    for key=value prose)."""
-    return _latinize(" ".join(str(value) for value in resource.values() if isinstance(value, (str, int, float))))
+def intent(rel: str, resource: dict, descriptors: dict[str, dict]) -> str | None:
+    """The candidate's intention, as the ALPS descriptor states it: the goal
+    wording ("Reach the editorial decision") matches descriptor language, not
+    field values (measured: 0.80 vs 0.65 discrimination on the same state).
+    None when no descriptor carries the meaning."""
+    if rel == "self":
+        return None
+    doc = descriptors.get("#" + rel, {}).get("doc", {}).get("value", "")
+    doc = _latinize(doc).strip().rstrip(".")
+    if not doc:
+        return None
+    doc += "."
+    identifier = next((str(value) for key, value in resource.items() if key.endswith("Id")), None)
+    if identifier:
+        doc = f"{doc} ({identifier})"
+    return doc
 
 
-def state_digest(representation: dict, descriptors: dict[str, dict]) -> str:
-    """Body values as key=value, plus the descriptor language of what the page
-    links to and embeds. The bare rel vocabulary is excluded (docs/laya-mlx.md,
-    Spike: vocabulary in the state sways the choice toward itself); the
-    descriptor title and doc are different: they say what a resource means,
-    and a page's meaning is its descriptors, not its field values."""
-    body = " ".join(
+def state_digest(representation: dict) -> str:
+    """Body values as key=value. The rel vocabulary and descriptor language of
+    the page are excluded (docs/laya-mlx.md, Spike: vocabulary in the state
+    sways the choice toward itself, and a page's offers beside the candidate
+    descriptions push the goal-answered NULP toward "already reached")."""
+    return " ".join(
         f"{key}={value}"
         for key, value in representation.items()
         if not key.startswith("_") and isinstance(value, (str, int, float))
     )
-    return body + meanings(representation, descriptors)
-
-
-def meanings(representation: dict, descriptors: dict[str, dict]) -> str:
-    parts = [describe(rel, descriptors) for rel in representation.get("_links", {}) if rel != "self"]
-    for rel in representation.get("_embedded", {}):
-        parts.append(describe(rel, descriptors))
-    unique = " | ".join(dict.fromkeys(p for p in parts if p))
-    return " This page offers: " + unique if unique else ""
 
 
 def _latinize(text: str) -> str:
