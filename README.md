@@ -89,8 +89,7 @@ python3 -m venv .venv && .venv/bin/pip install fastapi uvicorn
 ```bash
 python3 -m venv .venv && .venv/bin/pip install httpx laya-mlx
 .venv/bin/python main.py http://127.0.0.1:8791/ \
-  --goal "Find the name of the referee who argued against publishing the paper
-          titled 'Affordance Density in Machine-Readable Hypermedia'." \
+  --goal "Find the name of the referee who argued against publishing the paper titled 'Affordance Density in Machine-Readable Hypermedia'." \
   --trace var/trace.jsonl
 ```
 
