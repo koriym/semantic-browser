@@ -39,8 +39,10 @@ next representation
   table, no API definition supplied in advance.
 - **Server-Driven Affordances** — the client does not construct URLs or invent
   actions. It selects among the transitions the current representation offers.
-- **Safety First** — `unsafe` methods are not executed by default. `safe` and
-  `idempotent` transitions are preferred.
+- **Safety First** — `unsafe` transitions are not executed by default. `safe`
+  and `idempotent` ones are preferred. *Partially implemented: the walker reads
+  a `method` hint on the link, not the `type` ALPS declares. See
+  [docs/M1-RESULT.md](./docs/M1-RESULT.md).*
 
 ## Decision engine
 

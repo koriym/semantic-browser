@@ -32,7 +32,7 @@ next representation
 
 - **Discovery over Configuration:** Semantic Browserは単一のエントリーURIから始まり、HAL (`_links`) やALPS (`rel="profile"`) といった標準的なハイパーメディア情報を通じて、アプリケーションの構造を自己発見します。事前のルートテーブルやAPI定義は不要です。
 - **Server-Driven Affordances:** クライアントはURLやactionを発明しません。常にサーバーが提供する選択肢の中から、現在の状態と目的に最も適したものを選択します。
-- **Safety First:** デフォルトでは `unsafe` なHTTPメソッド（POST, PUT, DELETEなど）を実行しません。`safe` および `idempotent` な遷移を優先します。
+- **Safety First:** デフォルトでは `unsafe` な遷移を実行しません。`safe` および `idempotent` な遷移を優先します。*実装は途中です。リンク側の `method` ヒントを見ており、ALPS が宣言する `type` を読んでいません。[docs/M1-RESULT.md](./docs/M1-RESULT.md) 参照。*
 
 ## 意思決定エンジン
 

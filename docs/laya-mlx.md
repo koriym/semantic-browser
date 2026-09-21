@@ -50,7 +50,6 @@ state + typed question → bidirectional encoder → decision heads → probabil
 改善しうるが、決定性・速度・「提示していない選択肢を出せない」という
 保証を失う。**別の弱点集合への交換である。**
 
-
 ## API
 
 ```python
