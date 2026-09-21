@@ -73,7 +73,7 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
             uri = chosen.href
             record["followed"] = chosen.href
             trace.write(json.dumps(record, ensure_ascii=False) + "\n")
-            print(f"step {step + 1}: {uri} (choice={decision['choice']} conf={decision['confidence']:.3f} reached={decision['reached_probability']:.3f})")
+            print(f"step {step + 1}: {uri}")
         print(f"max steps ({args.max_steps}) reached at {uri}")
 
 
