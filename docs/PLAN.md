@@ -30,7 +30,7 @@
   - **Decision Engine Interface:** `choose(links, alps_doc, current_state)` のような、Laya-MLXを呼び出すための小さなインターフェースを定義する。選択肢には rel と `_embedded` の個別リソースが混在しうるので、両者を同じ形で扱えるようにする。
   - **Laya-MLX Connector:** 上記インターフェースの具象クラス。提示された `rel` を `choice` 質問の選択肢として渡し、返る確率分布から遷移を決める。Laya は文字列を生成しないのでパース処理は不要（[docs/laya-mlx.md](./laya-mlx.md)）。
   - **Traversal Loop:** `discover → choose → follow` のループを回すメインロジック。
-  - **Semantic Trace (JSONL):** 各ステップの観測結果（現在のURI、利用可能なリンク、選択したリンク、確率分布）をJSONLファイルに記録する。Laya は理由の文章を返さないため、選択の根拠として残せるのは分布そのものである。
+  - **Semantic Trace (JSONL):** 各ステップの観測結果（現在のURI、利用可能なリンク、選択したリンク、確率分布）をJSONLファイルに記録する。Laya は理由の文章を返さないため、選択の根拠として残せるのは分布そのものである。候補から除外したリンクも、除外した理由とともに残すこと。templated や unsafe を無言で落とすと、HAL には存在した遷移が記録から消え、Milestone 3 の Completeness 検査がそれを見つけられなくなる。
 
 - **何が動けば完了か:**
   - CLIから `python main.py <entry_uri> --goal "<達成したいこと>"` を実行すると、Semantic Browserがサーバーを自律的に巡回し、終了条件（ゴール到達、最大ステップ数）を満たす。`choice` はゴールとの照合で選ぶため、ゴールなしでは決定が定義できない。
