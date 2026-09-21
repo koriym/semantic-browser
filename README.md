@@ -30,6 +30,16 @@ next representation
 - **Server-Driven Affordances:** クライアントはURLやactionを発明しません。常にサーバーが提供する選択肢の中から、現在の状態と目的に最も適したものを選択します。
 - **Safety First:** デフォルトでは `unsafe` なHTTPメソッド（POST, PUT, DELETEなど）を実行しません。`safe` および `idempotent` な遷移を優先します。
 
+## 意思決定エンジン
+
+`semantic decision` の実装には [Laya-MLX](https://github.com/mizorewww/laya-mlx) を使います。
+
+これは文章を生成するモデルではありません。state と選択肢を受け取り、**各選択肢の確率を返すエンコーダ**です。出力トークンは 0。したがって「選択肢以外を答える」ことが構造上できません。
+
+基本原則の *Server-Driven Affordances* — クライアントはactionを発明しない — が、規約ではなくモデルの形として実装されます。
+
+API・制限・実測は [docs/laya-mlx.md](./docs/laya-mlx.md) を参照してください。
+
 ## 現状 (Status)
 
 現在、このプロジェクトは **Proof of Concept (PoC) - Stage 1** にあります。

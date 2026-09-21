@@ -28,9 +28,9 @@
   - **Mock Server:** Python (FastAPI) で、静的なHAL+ALPSのレスポンスを返す簡単なAPIサーバーを構築する。書籍管理システムなど、複数のリソースと遷移（ループや分岐を含む）を持つ。
   - **HTTP Walker:** `httpx` を使い、指定URIからHALの `_links` を抽出するクライアント。
   - **Decision Engine Interface:** `choose(links, alps_doc, current_state)` のような、Laya-MLXを呼び出すための小さなインターフェースを定義する。
-  - **Laya-MLX Connector:** 上記インターフェースの具象クラス。Laya-MLXに「次に進むべきリンクの `rel` を1つ選べ」と質問し、結果をパースする。
+  - **Laya-MLX Connector:** 上記インターフェースの具象クラス。提示された `rel` を `choice` 質問の選択肢として渡し、返る確率分布から遷移を決める。Laya は文字列を生成しないのでパース処理は不要（[docs/laya-mlx.md](./laya-mlx.md)）。
   - **Traversal Loop:** `discover → choose → follow` のループを回すメインロジック。
-  - **Semantic Trace (JSONL):** 各ステップの観測結果（現在のURI、利用可能なリンク、選択したリンク、理由）をJSONLファイルに記録する。
+  - **Semantic Trace (JSONL):** 各ステップの観測結果（現在のURI、利用可能なリンク、選択したリンク、確率分布）をJSONLファイルに記録する。Laya は理由の文章を返さないため、選択の根拠として残せるのは分布そのものである。
 
 - **何が動けば完了か:**
   - CLIから `python main.py <entry_uri>` を実行すると、Semantic Browserがモックサーバーを自律的に巡回し、最終的に終了条件（例: 最大ステップ数に到達）を満たす。
@@ -63,7 +63,7 @@
   - **Audit Rules:**
     - 「ALPSに定義があるが、`_links` に存在しない遷移」を検出する。
     - 「`_links` に存在するが、ALPSに定義がない遷移」を検出する。
-    - Layaの選択の自信度（スコア）が低かった遷移を「曖昧」としてリストアップする。
+    - Layaが返す確率分布が拮抗していた遷移を「曖昧」としてリストアップする。[docs/laya-mlx.md](./laya-mlx.md) の観測どおり分布は候補集合に依存するので、何をもって曖昧とするかは実装者が定義し、その定義をレポートに明記すること。
   - **Audit Report:** 検出した欠陥を、人間が読める形式（Markdown）で出力する。
 
 - **何が動けば完了か:**
@@ -75,5 +75,6 @@
 
 ## 4. 技術的不確実性とSpike
 
-- **Laya-MLXのプロンプト設計:** どのようなプロンプト（質問形式）を与えれば、Laya-MLXが最も安定して「正しい `rel`」を選択できるか。これは最初に検証すべき最も重要なSpikeである。
-- **ALPSの解釈:** ALPSドキュメント（XML/JSON）を、Laya-MLXが理解しやすい形式（自然言語の説明文など）に変換する最適な方法は何か。
+- **state と question の設計:** Laya に渡す `state` と `choice` 質問をどう構成すれば、最も安定して「正しい `rel`」が選ばれるか。プロンプトではなく typed question の設計である（[docs/laya-mlx.md](./laya-mlx.md)）。**これは最初に検証すべき最も重要な Spike である。** 同ドキュメントの「観測（未解決）」に、state の書き方と候補集合が結果を動かした実測がある。結論は出ていない。
+- **ALPSの対応付け:** ALPSドキュメント（XML/JSON）の descriptor を `choice` の `criteria`（`{ラベル: 説明}`）にどう対応させるか。自然言語への変換ではなく構造の対応付けである。context 上限は 512 トークン（英語チェックポイント）で、instructions・criteria・state のすべてを含む。ALPSプロファイル全体は入らない。
+- **記述のない rel の扱い:** `_links` にあって ALPS に記述がない rel を `criteria` にどう載せるか。補完すれば Milestone 3 の検出対象が消える。
