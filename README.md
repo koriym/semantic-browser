@@ -2,13 +2,20 @@
 
 > A browser that follows meaning, not routes.
 
-Semantic Browserは、ハイパーメディアアプリケーションを自律的にナビゲートするための、新しい種類のマシンクライアントです。
+English | [日本語](./README.ja.md)
 
-従来のWebブラウザが「人間がrepresentationを読み、linkを選んで次へ進む」のに対し、Semantic Browserは「機械がrepresentationとその意味（semantics）を解釈し、提示されたaffordanceの中から次のactionを選択する」ことを目指します。
+Semantic Browser is a machine client for navigating hypermedia applications
+autonomously.
 
-## コアコンセプト
+A human browser is driven by a person who reads the representation and picks a
+link. Semantic Browser is driven by a machine that reads the representation
+*and the semantics it declares*, then picks one of the affordances the server
+offered.
 
-このプロジェクトの中核は、AI Agentのように自由な推論でactionを「発明（invent）」するのではなく、サーバーから提示されたhypermedia controlsの中から意味に基づいて「選択（choose）」するという、制約駆動型のアプローチにあります。
+## Core concept
+
+The client never invents an action. It chooses one, from what the server put in
+front of it.
 
 ```
 representation
@@ -24,41 +31,91 @@ choose transition
 next representation
 ```
 
-## 基本原則
+## Principles
 
-- **Discovery over Configuration:** Semantic Browserは単一のエントリーURIから始まり、HAL (`_links`) やALPS (`rel="profile"`) といった標準的なハイパーメディア情報を通じて、アプリケーションの構造を自己発見します。事前のルートテーブルやAPI定義は不要です。
-- **Server-Driven Affordances:** クライアントはURLやactionを発明しません。常にサーバーが提供する選択肢の中から、現在の状態と目的に最も適したものを選択します。
-- **Safety First:** デフォルトでは `unsafe` なHTTPメソッド（POST, PUT, DELETEなど）を実行しません。`safe` および `idempotent` な遷移を優先します。
+- **Discovery over Configuration** — start from one entry URI and learn the
+  application's shape from HAL (`_links`) and ALPS (`rel="profile"`). No route
+  table, no API definition supplied in advance.
+- **Server-Driven Affordances** — the client does not construct URLs or invent
+  actions. It selects among the transitions the current representation offers.
+- **Safety First** — `unsafe` methods are not executed by default. `safe` and
+  `idempotent` transitions are preferred.
 
-## 意思決定エンジン
+## Decision engine
 
-`semantic decision` の実装には [Laya-MLX](https://github.com/mizorewww/laya-mlx) を使います。
+`semantic decision` is implemented with [Laya-MLX](https://github.com/mizorewww/laya-mlx).
 
-これは文章を生成するモデルではありません。state と選択肢を受け取り、**各選択肢の確率を返すエンコーダ**です。出力トークンは 0。したがって「選択肢以外を答える」ことが構造上できません。
+Laya is not a text generator. It is an encoder: it takes a state and a set of
+labelled options and returns **a probability for each option**. Zero output
+tokens. Answering with something that was not offered is therefore not a rule
+it follows — it is not expressible.
 
-基本原則の *Server-Driven Affordances* — クライアントはactionを発明しない — が、規約ではなくモデルの形として実装されます。
+*Server-Driven Affordances* stops being a convention and becomes the shape of
+the model.
 
-API・制限・実測は [docs/laya-mlx.md](./docs/laya-mlx.md) を参照してください。
+API, limits and measurements: [docs/laya-mlx.md](./docs/laya-mlx.md).
 
-## 現状 (Status)
+## Status
 
-現在、このプロジェクトは **Proof of Concept (PoC) - Stage 1** にあります。
+**Proof of Concept — Stage 1 complete.**
 
-Stage 1の目標は、Pythonで実装された静的なモックHAL APIサーバーを対象に、以下のコアループが機能することを証明することです。
+The `discover → understand → choose → follow → record` loop works. Semantic
+Audit turns out to need one more prerequisite.
 
-`discover → understand → choose → follow → record`
+- The browser traverses a live application using HAL and ALPS alone, with no
+  prior knowledge of it
+- The **deterministic** half of the audit — missing descriptions, reachability
+  — is usable today, and found real defects in a third-party ALPS profile
+- **Judgement based on meaning needs the instrument itself calibrated first.**
+  An instrument that reports two opposite descriptions as indistinguishable
+  cannot separate "this application is vague" from "this engine cannot read"
 
-詳細な実装計画については、[docs/PLAN.md](./docs/PLAN.md)を参照してください。
+Measurements and the full account: [docs/M1-RESULT.md](./docs/M1-RESULT.md).
+Implementation plan: [docs/PLAN.md](./docs/PLAN.md).
 
-## 将来のビジョン: Semantic Audit
+## Running it
 
-このプロジェクトの最終的な目標は、単なる「ブラウザ」を作ることではありません。Semantic Browserが収集した「Semantic Trace」を分析し、アプリケーションの自己記述性（Self-descriptiveness）を検証する **「Semantic Audit」** ツールとしての価値を提供することです。
+The target application lives in a separate repository on purpose. Whoever
+writes the descriptions must not be whoever reads them, or the audit grades its
+own homework.
 
-Semantic Auditは、以下のような問いに答えます。
+```bash
+git clone https://github.com/koriym/semantic-browser-fixture
+cd semantic-browser-fixture
+python3 -m venv .venv && .venv/bin/pip install fastapi uvicorn
+.venv/bin/uvicorn server:app --port 8791
+```
 
-- **Completeness:** ALPSに記述されているすべての遷移が、実際にHALの `_links` として提供されているか？
-- **Clarity:** 各遷移の `rel` やALPSの記述は、機械が一意に解釈できるほど明確か？
-- **Consistency:** ALPSの記述と、実際のHTTPメソッドやレスポンスは一致しているか？
-- **Validity of Semantic Variables:** パスパラメータやリクエストボディのフィールドは、ALPSで意味的に定義され、HALで実際に提供されているか？
+```bash
+python3 -m venv .venv && .venv/bin/pip install httpx laya-mlx
+.venv/bin/python main.py http://127.0.0.1:8791/ \
+  --goal "Find the name of the referee who argued against publishing the paper
+          titled 'Affordance Density in Machine-Readable Hypermedia'." \
+  --trace var/trace.jsonl
+```
 
-これにより、Semantic Browserは「意味的に不自然なstate transition」や「ALPSの宣言と実際のresponseの不整合」を検出し、API設計者に具体的なフィードバックを提供する、ハイパーメディアAPIの品質保証ツールへと進化します。
+Apple Silicon, Python 3.11+. The first run downloads the checkpoint.
+
+Every step is written to the trace: the candidates, the descriptions actually
+sent to the engine, the probability over them, the links that were excluded and
+why, and which checkpoint produced the numbers. A run that goes to the wrong
+place says so.
+
+## Where this is going: Semantic Audit
+
+The point is not the browser. It is what the traversal record tells you about
+the application.
+
+| Question | How it is answered |
+| --- | --- |
+| **Completeness** — is every transition ALPS declares actually offered in HAL? | Set operations. Deterministic |
+| **Consistency** — do the declarations match the methods and responses? | Set operations. Deterministic |
+| **Reachability** — can every declared state be reached from an entry point? | Graph traversal. Deterministic |
+| **Clarity** — are two affordances distinguishable from their descriptions? | Needs a calibrated instrument. Not yet |
+
+The first three already work on an ALPS profile alone, with no server running.
+On a real e-commerce profile (100 states, 208 transitions) they found 44
+transitions no state offers and 15 states nothing transitions into: paths that
+**no engine can take**, because the declarations do not contain them.
+
+The fourth is the open problem, and Stage 1's main result is identifying why.
