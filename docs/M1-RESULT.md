@@ -9,7 +9,7 @@
 | --- | --- |
 | Semantic Browser | 本リポジトリ。`walker.py` / `decision.py` / `main.py` |
 | 意思決定エンジン | [Laya-MLX](./laya-mlx.md)。文章を生成せず、提示した選択肢の確率を返す |
-| 対象アプリケーション | 別リポジトリの査読ジャーナル（HAL + ALPS）。実装者はソースを読まず、HTTP と実行時取得の ALPS だけで書いた |
+| 対象アプリケーション | [semantic-browser-fixture](https://github.com/koriym/semantic-browser-fixture)。査読ジャーナル（HAL + ALPS）。実装者はソースを読まず、HTTP と実行時取得の ALPS だけで書いた |
 
 ## 検証項目への答え
 
