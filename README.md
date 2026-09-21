@@ -4,8 +4,9 @@
 
 English | [日本語](./README.ja.md)
 
-Semantic Browser is a machine client for navigating hypermedia applications
-autonomously.
+Semantic Browser browses hyperlinks by what they mean.
+
+It is a machine client for navigating hypermedia applications autonomously.
 
 A human browser is driven by a person who reads the representation and picks a
 link. Semantic Browser is driven by a machine that reads the representation

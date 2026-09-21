@@ -4,7 +4,9 @@
 
 [English](./README.md) | 日本語
 
-Semantic Browserは、ハイパーメディアアプリケーションを自律的にナビゲートするための、新しい種類のマシンクライアントです。
+Semantic Browser は、ハイパーリンクを意味によってブラウズします。
+
+ハイパーメディアアプリケーションを自律的にナビゲートするための、新しい種類のマシンクライアントです。
 
 従来のWebブラウザが「人間がrepresentationを読み、linkを選んで次へ進む」のに対し、Semantic Browserは「機械がrepresentationとその意味（semantics）を解釈し、提示されたaffordanceの中から次のactionを選択する」ことを目指します。
 

@@ -20,6 +20,37 @@ state + typed question → bidirectional encoder → decision heads → probabil
 
 `temperature`、`max_tokens`、文法制約、ストリーミングといった概念は存在しない。
 
+## 何の一種か
+
+分類名で言うと **cross-encoder による reranking** である。
+
+| 軸 | |
+| --- | --- |
+| 大分類 | **判別モデル**（discriminative）。生成モデルではない |
+| アーキテクチャ | **encoder-only / bidirectional encoder**。BERT 系 |
+| 入力の組み方 | **cross-encoder** — state と選択肢を分離せず一緒に符号化する |
+| タスク形 | **zero-shot classification / reranking** |
+
+「LLM ベース」は誤りではない（ModernBERT もマスク言語モデルである）が、
+効いている境界は LLM かどうかではなく**生成か判別か**なので、そう呼ぶと
+分かりにくくなる。
+
+この分類が重要なのは、**cross-encoder reranker の既知の性質がそのまま
+現れる**からである。下の「観測」で記録した挙動は、いずれもこの種類の
+モデルについて知られていることと一致する。
+
+| 観測される挙動 | 種類としての性質 |
+| --- | --- |
+| 否定を読まない | NLI で学習していない reranker の典型的な弱点 |
+| 表層の語の重なりに強く引かれる | relevance matcher なので当然 |
+| 候補を 1 つ外すと勝者が変わる | softmax が候補集合上で正規化される。IIA が成り立たない |
+| 確信度が正しさと対応しない | 較正はスコア分布に対してであって正解率に対してではない |
+
+したがって、生成 LLM への差し替えは上位互換ではない。否定と IIA は
+改善しうるが、決定性・速度・「提示していない選択肢を出せない」という
+保証を失う。**別の弱点集合への交換である。**
+
+
 ## API
 
 ```python

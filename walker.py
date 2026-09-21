@@ -1,5 +1,9 @@
-"""HTTP walker: fetch representations, extract HAL transition candidates,
-fetch the ALPS profile declared via Link: rel="profile" (M1: GET only)."""
+"""Turns a representation into the hyperlinks it offers, each carrying the
+meaning its ALPS descriptor declares. Those pairs - a link and what following
+it means - are what the decision engine chooses between.
+
+Fetches representations, extracts HAL transition candidates, and reads the
+ALPS profile declared via Link: rel="profile" (M1: GET only)."""
 
 from urllib.parse import urljoin
 
