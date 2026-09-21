@@ -25,15 +25,15 @@
 ### Milestone 1: 静的な世界での自律歩行 (Static World Walker)
 
 - **何を実装するか:**
-  - **Mock Server:** Python (FastAPI) で、静的なHAL+ALPSのレスポンスを返す簡単なAPIサーバーを構築する。書籍管理システムなど、複数のリソースと遷移（ループや分岐を含む）を持つ。
-  - **HTTP Walker:** `httpx` を使い、指定URIからHALの `_links` を抽出するクライアント。
-  - **Decision Engine Interface:** `choose(links, alps_doc, current_state)` のような、Laya-MLXを呼び出すための小さなインターフェースを定義する。
+  - **Mock Server:** 用意済み。`http://127.0.0.1:8791/` で稼働する査読ジャーナルの編集システム（HAL + ALPS）。実装者はこのサーバーのソースを読まない。ALPS は実行時に `rel="profile"` から取得する。記述を書いた者と読む者を分けることが Milestone 3 の前提であり、ソースを読めば自己記述性の検査は自作自演になる。
+  - **HTTP Walker:** `httpx` を使い、HALから遷移候補を抽出するクライアント。候補は 2 種類ある。`_links` の各 rel と、`_embedded` 配下の各リソースが持つ `_links.self`。後者は一覧から個別リソースへ進む唯一の手段である。`{id}` を含む templated link は M1 では候補から除外する（展開は Milestone 2）。
+  - **Decision Engine Interface:** `choose(links, alps_doc, current_state)` のような、Laya-MLXを呼び出すための小さなインターフェースを定義する。選択肢には rel と `_embedded` の個別リソースが混在しうるので、両者を同じ形で扱えるようにする。
   - **Laya-MLX Connector:** 上記インターフェースの具象クラス。提示された `rel` を `choice` 質問の選択肢として渡し、返る確率分布から遷移を決める。Laya は文字列を生成しないのでパース処理は不要（[docs/laya-mlx.md](./laya-mlx.md)）。
   - **Traversal Loop:** `discover → choose → follow` のループを回すメインロジック。
   - **Semantic Trace (JSONL):** 各ステップの観測結果（現在のURI、利用可能なリンク、選択したリンク、確率分布）をJSONLファイルに記録する。Laya は理由の文章を返さないため、選択の根拠として残せるのは分布そのものである。
 
 - **何が動けば完了か:**
-  - CLIから `python main.py <entry_uri>` を実行すると、Semantic Browserがモックサーバーを自律的に巡回し、最終的に終了条件（例: 最大ステップ数に到達）を満たす。
+  - CLIから `python main.py <entry_uri> --goal "<達成したいこと>"` を実行すると、Semantic Browserがサーバーを自律的に巡回し、終了条件（ゴール到達、最大ステップ数）を満たす。`choice` はゴールとの照合で選ぶため、ゴールなしでは決定が定義できない。
   - `trace.jsonl` というファイルが生成され、一連の遷移記録が保存されている。
 
 - **そこで何を検証できるか:**

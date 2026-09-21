@@ -59,12 +59,12 @@ result = agent.predict(
 ```python
 {'model': 'laya-rl-agent',
  'answers': {
-   'rel':  {'type': 'choice', 'choice': 'books', 'confidence': 0.4822,
-            'probabilities': {'books': 0.808, 'index': 0.154, 'authors': 0.038},
+   'rel':  {'type': 'choice', 'choice': 'books', 'confidence': 0.6632,
+            'probabilities': {'books': 0.9034, 'index': 0.074, 'authors': 0.0226},
             'action': {'act_probability': 1.0}},
-   'done': {'type': 'noul', 'noul': 0.1029, 'confidence': 0.8971,
+   'done': {'type': 'noul', 'noul': 0.0834, 'confidence': 0.9166,
             'action': {'act_probability': 1.0}}},
- 'usage': {'input_tokens': 126, 'output_tokens': 0}}
+ 'usage': {'input_tokens': 91, 'output_tokens': 0}}
 ```
 
 `confidence` は温度較正済み。`usage.input_tokens` で context 消費を確認できる。
@@ -84,13 +84,17 @@ Apple Silicon、Python 3.11+、macOS 14+。初回 `load` で重みを取得す�
 
 ## 速度とメモリ
 
-M3 Max 実測（英語 421M、FP16、モデルロードを除く）。
+上の 2 問（`rel` + `done`）を 20 回反復した実測。M3 Max 96 GiB、
+laya-mlx 0.1.0、FP16、モデルロードを除く。
 
 | | |
 | --- | --- |
-| 1 問（短文）P50 | 13.4 ms |
-| 2 問同時（本プロジェクトの `rel` + `done`） | 約 51 ms |
-| ピーク MLX 割り当て | 944 MiB |
+| P50 | 17.7 ms |
+| P95 | 19.5 ms |
+| ピーク MLX 割り当て | 956 MiB |
+
+上流 README が公表している値は 1 問・短文で P50 13.4 ms（英語 421M）、
+7.4 ms（多言語 322M）。測定条件が違うので上の実測とは直接比較できない。
 
 生成 LLM と違い、decode 速度・prefill 速度という律速は存在しない。
 
