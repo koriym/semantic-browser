@@ -1,7 +1,6 @@
 """HTTP walker: fetch representations, extract HAL transition candidates,
 fetch the ALPS profile declared via Link: rel="profile" (M1: GET only)."""
 
-import re
 from urllib.parse import urljoin
 
 import httpx
@@ -47,25 +46,41 @@ def extract_candidates(
     representation: dict,
     base_uri: str,
     descriptors: dict[str, dict],
-    exclude_hrefs: set[str] = frozenset(),
-) -> list[Candidate]:
-    """Candidates are the non-self, non-templated _links entries plus every
-    _embedded resource's _links.self (M1: templated links are excluded)."""
+    visited: set[str] = frozenset(),
+) -> tuple[list[Candidate], list[dict]]:
+    """Candidates are the non-self, non-templated GET links in `_links` plus
+    every `_embedded` resource's `_links.self`. Returns the candidates and the
+    links that exist in HAL but were not offered, each with its reason (M1:
+    templated, non-GET, already visited)."""
     candidates: list[Candidate] = []
-    seen_hrefs: set[str] = set(exclude_hrefs)
+    excluded: list[dict] = []
+    seen_hrefs: set[str] = set()
 
     for rel, link in representation.get("_links", {}).items():
-        if rel == "self" or link.get("templated"):
-            continue
-        if link.get("method", "GET").upper() != "GET":
-            continue
         href = urljoin(base_uri, link["href"])
-        if href in seen_hrefs:
-            continue
-        candidates.append(
-            Candidate(rel=rel, label=rel, href=href, description=describe(rel, descriptors))
-        )
-        seen_hrefs.add(href)
+        reason = None
+        if rel == "self":
+            reason = "self"
+        elif link.get("templated"):
+            reason = "templated"
+        elif link.get("method", "GET").upper() != "GET":
+            reason = "unsafe"
+        elif href in visited:
+            reason = "visited"
+        elif href in seen_hrefs:
+            reason = "duplicate"
+        else:
+            candidates.append(
+                Candidate(
+                    rel=rel,
+                    label=rel,
+                    href=href,
+                    description=intent(rel, descriptors),
+                )
+            )
+            seen_hrefs.add(href)
+        if reason:
+            excluded.append({"rel": rel, "href": href, "excluded": reason})
 
     for rel, resources in representation.get("_embedded", {}).items():
         for index, resource in enumerate(resources):
@@ -73,7 +88,11 @@ def extract_candidates(
             if not self_link:
                 continue
             href = urljoin(base_uri, self_link["href"])
+            if href in visited:
+                excluded.append({"rel": rel, "href": href, "excluded": "visited"})
+                continue
             if href in seen_hrefs:
+                excluded.append({"rel": rel, "href": href, "excluded": "duplicate"})
                 continue
             seen_hrefs.add(href)
             candidates.append(
@@ -81,39 +100,35 @@ def extract_candidates(
                     rel=rel,
                     label=f"{rel}_{index}",
                     href=href,
-                    description=intent(rel, resource, descriptors)
-                    or _latinize(" ".join(str(v) for v in resource.values() if isinstance(v, (str, int, float)))),
+                    description=instance(rel, resource, descriptors),
                 )
             )
-    return candidates
+    return candidates, excluded
 
 
-def describe(rel: str, descriptors: dict[str, dict]) -> str:
+def intent(rel: str, descriptors: dict[str, dict]) -> str:
+    """What opening this link does, as the descriptor states it. The goal
+    wording matches descriptor language, not field values (measured: the
+    discriminator at the article hop is the description, not the URI)."""
     descriptor = descriptors.get("#" + rel)
     if not descriptor:
         return f"Follow the {rel} link."
     title = descriptor.get("title", rel)
     doc = descriptor.get("doc", {}).get("value", "")
-    text = f"{title}. {doc}" if doc else title
-    return _latinize(text)
+    return f"{title}. {doc}" if doc else title
 
 
-def intent(rel: str, resource: dict, descriptors: dict[str, dict]) -> str | None:
-    """The candidate's intention, as the ALPS descriptor states it: the goal
-    wording ("Reach the editorial decision") matches descriptor language, not
-    field values (measured: 0.80 vs 0.65 discrimination on the same state).
-    None when no descriptor carries the meaning."""
-    if rel == "self":
-        return None
+def instance(rel: str, resource: dict, descriptors: dict[str, dict]) -> str:
+    """A collection's ALPS doc describes every item in it equally, so it cannot
+    tell two of them apart. What distinguishes them is the body the server sent,
+    and that is the only channel HAL offers here."""
     doc = descriptors.get("#" + rel, {}).get("doc", {}).get("value", "")
-    doc = _latinize(doc).strip().rstrip(".")
-    if not doc:
-        return None
-    doc += "."
-    identifier = next((str(value) for key, value in resource.items() if key.endswith("Id")), None)
-    if identifier:
-        doc = f"{doc} ({identifier})"
-    return doc
+    fields = " ".join(
+        f"{key}={value}"
+        for key, value in resource.items()
+        if not key.startswith("_") and isinstance(value, (str, int, float))
+    )
+    return f"{doc} {fields}".strip() if doc else fields
 
 
 def state_digest(representation: dict) -> str:
@@ -126,9 +141,3 @@ def state_digest(representation: dict) -> str:
         for key, value in representation.items()
         if not key.startswith("_") and isinstance(value, (str, int, float))
     )
-
-
-def _latinize(text: str) -> str:
-    """The English checkpoint tokenizes non-ASCII poorly; keep the latin parts."""
-    kept = re.sub(r"[^\x00-\x7f]+", " ", text)
-    return re.sub(r"\s+", " ", kept).strip()

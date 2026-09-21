@@ -1,1 +1,0 @@
-{"_links": {"self": {"href": "/"}, "goManuscriptList": {"href": "/manuscripts"}, "goIssueList": {"href": "/issues"}, "goReviewerPool": {"href": "/reviewers"}, "doSubmitManuscript": {"href": "/manuscripts", "method": "POST"}}}

@@ -43,7 +43,7 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
     history: list[str] = []
     with open(args.trace, "w") as trace:
         for step in range(args.max_steps):
-            candidates = extract_candidates(representation, uri, descriptors, visited)
+            candidates, excluded = extract_candidates(representation, uri, descriptors, visited)
             state = build_state(uri, representation, history)
             decision = engine.decide(args.goal, state, candidates) if candidates else None
             reason = _stop_reason(decision)
@@ -56,6 +56,8 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
                     {"rel": c.rel, "label": c.label, "href": c.href, "description": c.description}
                     for c in candidates
                 ],
+                "excluded": excluded,
+                "criteria": {c.label: c.description for c in candidates},
                 "decision": decision,
             }
             if reason:

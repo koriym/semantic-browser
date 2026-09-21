@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from typing import Any
 
 MAX_STATE_CHARS = 1500
+NOUL_ACHIEVED = (
+    "The goal is already reached when the state contains the answer to the goal."
+)
 
 
 @dataclass(frozen=True)
@@ -22,7 +25,9 @@ class DecisionEngine(ABC):
         """Pick the candidate that best advances the goal.
 
         Returns the choice with its confidence and probability map, plus the
-        NULP: the probability that the goal is already reached.
+        NULP: the probability that the goal is already reached. The dict also
+        carries the exact `state` string and `criteria` dict the engine
+        received, so the trace records what the probabilities are about.
         """
 
 
@@ -42,13 +47,15 @@ class LayaMlxDecisionEngine(DecisionEngine):
             },
             "reached": {
                 "type": "noul",
-                "instructions": "Has the goal already been reached?",
+                "instructions": NOUL_ACHIEVED,
             },
         }
         state_with_goal = f"{state} Goal: {goal}"
         result = self._agent.predict(state_with_goal, questions)
         answer = result["answers"]["rel"]
         answer["reached_probability"] = result["answers"]["reached"]["noul"]
+        answer["state"] = state_with_goal
+        answer["criteria"] = questions["rel"]["criteria"]
         return answer
 
 
