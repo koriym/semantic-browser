@@ -46,12 +46,19 @@ def extract_candidates(
     representation: dict,
     base_uri: str,
     descriptors: dict[str, dict],
-    visited: set[str] = frozenset(),
+    over_limit: set[str] = frozenset(),
 ) -> tuple[list[Candidate], list[dict]]:
     """Candidates are the non-self, non-templated GET links in `_links` plus
     every `_embedded` resource's `_links.self`. Returns the candidates and the
     links that exist in HAL but were not offered, each with its reason (M1:
-    templated, non-GET, already visited)."""
+    templated, non-GET, duplicate within the page).
+
+    Going back is a legitimate affordance in a space with loops, so a visited
+    target is not removed on sight. What is removed is a target already opened
+    `REVISIT_LIMIT` times: a deterministic engine given the same state returns
+    the same choice, so without a cap a wrong turn becomes a two-cycle. The cap
+    is structural because a textual warning does not work - the engine does not
+    read negation (docs/laya-mlx.md)."""
     candidates: list[Candidate] = []
     excluded: list[dict] = []
     seen_hrefs: set[str] = set()
@@ -65,8 +72,8 @@ def extract_candidates(
             reason = "templated"
         elif link.get("method", "GET").upper() != "GET":
             reason = "unsafe"
-        elif href in visited:
-            reason = "visited"
+        elif href in over_limit:
+            reason = "revisit-limit"
         elif href in seen_hrefs:
             reason = "duplicate"
         else:
@@ -88,8 +95,8 @@ def extract_candidates(
             if not self_link:
                 continue
             href = urljoin(base_uri, self_link["href"])
-            if href in visited:
-                excluded.append({"rel": rel, "href": href, "excluded": "visited"})
+            if href in over_limit:
+                excluded.append({"rel": rel, "href": href, "excluded": "revisit-limit"})
                 continue
             if href in seen_hrefs:
                 excluded.append({"rel": rel, "href": href, "excluded": "duplicate"})

@@ -9,7 +9,7 @@ import json
 import sys
 from urllib.parse import urlparse
 
-from decision import LayaMlxDecisionEngine
+from decision import MAX_STATE_CHARS, LayaMlxDecisionEngine
 from walker import Walker, extract_candidates, state_digest
 
 REACHED = 0.5
@@ -21,7 +21,7 @@ def main() -> int:
     parser.add_argument("--goal", required=True, help="what the traversal should achieve")
     parser.add_argument("--max-steps", type=int, default=10)
     parser.add_argument("--trace", default="trace.jsonl")
-    parser.add_argument("--model", default="aac6fef/laya-mlx")
+    parser.add_argument("--model", default="aac6fef/laya-multilingual-mlx")
     args = parser.parse_args()
 
     entry = urlparse(args.entry_uri).path or "/"
@@ -34,24 +34,34 @@ def main() -> int:
     return 0
 
 
+RULED_OUT_KEPT = 3
+REVISIT_LIMIT = 2
+
+
 def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: argparse.Namespace) -> None:
     descriptors = walker.alps_descriptors(walker.profile_url(entry))
 
     uri = entry
     representation = walker.fetch(uri)
-    visited: set[str] = set()
-    history: list[str] = []
+    visits: dict[str, int] = {}
+    ruled_out: list[str] = []
     with open(args.trace, "w") as trace:
         for step in range(args.max_steps):
-            candidates, excluded = extract_candidates(representation, uri, descriptors, visited)
-            state = build_state(uri, representation, history)
+            visits[uri] = visits.get(uri, 0) + 1
+            candidates, excluded = extract_candidates(
+                representation, uri, descriptors,
+                {href for href, n in visits.items() if n >= REVISIT_LIMIT},
+            )
+            state, truncated = build_state(representation, ruled_out)
             decision = engine.decide(args.goal, state, candidates) if candidates else None
             reason = _stop_reason(decision)
             record = {
                 "step": step,
                 "uri": uri,
                 "goal": args.goal,
+                "model": args.model,
                 "state": state,
+                "state_truncated": truncated,
                 "candidates": [
                     {"rel": c.rel, "label": c.label, "href": c.href, "description": c.description}
                     for c in candidates
@@ -69,8 +79,7 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
                 print(f"{outcome} at {uri} ({reason}, step {step + 1}/{args.max_steps})")
                 return
             chosen = next(c for c in candidates if c.label == decision["choice"])
-            visited.add(uri)
-            history.append(uri)
+            ruled_out.append(chosen.description)
             representation = walker.fetch(chosen.href)
             uri = chosen.href
             record["followed"] = chosen.href
@@ -79,13 +88,20 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
         print(f"max steps ({args.max_steps}) reached at {uri}")
 
 
-def build_state(uri: str, representation: dict, history: list[str]) -> str:
-    """State is the current URI, visited URIs, and the body values. Neither the
-    rel vocabulary nor the descriptor language of the page is included
-    (docs/laya-mlx.md, Spike: vocabulary in the state sways the choice toward
-    itself)."""
-    visited = " Visited: " + ", ".join(history) if history else ""
-    return f"At {uri}.{visited} {state_digest(representation)}".strip()
+def build_state(representation: dict, ruled_out: list[str]) -> tuple[str, bool]:
+    """What is known, not where we are. URIs are excluded: the engine matches
+    a label against the route in the state and follows it back (docs/laya-mlx.md).
+
+    Transitions already taken are listed by what they offered, so that opening
+    them again is visibly redundant. Only the last few are kept: the whole state
+    must fit the checkpoint's context together with the criteria, and a state
+    that grows every hop silently loses its tail."""
+    tried = ""
+    if ruled_out:
+        recent = ruled_out[-RULED_OUT_KEPT:]
+        tried = " Already tried, without reaching the goal: " + " | ".join(recent) + "."
+    state = f"{state_digest(representation)}{tried}".strip()
+    return state, len(state) > MAX_STATE_CHARS
 
 
 def _stop_reason(decision: dict | None) -> str | None:
