@@ -42,7 +42,7 @@ next representation
 - **Safety First** — `unsafe` transitions are not executed by default. `safe`
   and `idempotent` ones are preferred. *Partially implemented: the walker reads
   a `method` hint on the link, not the `type` ALPS declares. See
-  [docs/M1-RESULT.md](./docs/M1-RESULT.md).*
+  [docs/en/M1-RESULT.md](./docs/en/M1-RESULT.md).*
 
 ## Decision engine
 
@@ -56,7 +56,7 @@ it follows — it is not expressible.
 *Server-Driven Affordances* stops being a convention and becomes the shape of
 the model.
 
-API, limits and measurements: [docs/laya-mlx.md](./docs/laya-mlx.md).
+API, limits and measurements: [docs/en/laya-mlx.md](./docs/en/laya-mlx.md).
 
 ## Status
 
@@ -73,8 +73,8 @@ Audit turns out to need one more prerequisite.
   An instrument that reports two opposite descriptions as indistinguishable
   cannot separate "this application is vague" from "this engine cannot read"
 
-Measurements and the full account: [docs/M1-RESULT.md](./docs/M1-RESULT.md).
-Implementation plan: [docs/PLAN.md](./docs/PLAN.md).
+Measurements and the full account: [docs/en/M1-RESULT.md](./docs/en/M1-RESULT.md).
+Implementation plan: [docs/en/PLAN.md](./docs/en/PLAN.md).
 
 ## Running it
 

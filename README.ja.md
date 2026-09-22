@@ -32,7 +32,7 @@ next representation
 
 - **Discovery over Configuration:** Semantic Browserは単一のエントリーURIから始まり、HAL (`_links`) やALPS (`rel="profile"`) といった標準的なハイパーメディア情報を通じて、アプリケーションの構造を自己発見します。事前のルートテーブルやAPI定義は不要です。
 - **Server-Driven Affordances:** クライアントはURLやactionを発明しません。常にサーバーが提供する選択肢の中から、現在の状態と目的に最も適したものを選択します。
-- **Safety First:** デフォルトでは `unsafe` な遷移を実行しません。`safe` および `idempotent` な遷移を優先します。*実装は途中です。リンク側の `method` ヒントを見ており、ALPS が宣言する `type` を読んでいません。[docs/M1-RESULT.md](./docs/M1-RESULT.md) 参照。*
+- **Safety First:** デフォルトでは `unsafe` な遷移を実行しません。`safe` および `idempotent` な遷移を優先します。*実装は途中です。リンク側の `method` ヒントを見ており、ALPS が宣言する `type` を読んでいません。[docs/ja/M1-RESULT.md](./docs/ja/M1-RESULT.md) 参照。*
 
 ## 意思決定エンジン
 
@@ -42,7 +42,7 @@ next representation
 
 基本原則の *Server-Driven Affordances* — クライアントはactionを発明しない — が、規約ではなくモデルの形として実装されます。
 
-API・制限・実測は [docs/laya-mlx.md](./docs/laya-mlx.md) を参照してください。
+API・制限・実測は [docs/ja/laya-mlx.md](./docs/ja/laya-mlx.md) を参照してください。
 
 ## 現状 (Status)
 
@@ -55,8 +55,8 @@ API・制限・実測は [docs/laya-mlx.md](./docs/laya-mlx.md) を参照して�
 - 監査のうち**決定的な検査**（記述の欠落、到達可能性）はそのまま使える
 - **意味に基づく判定は、計器そのものの校正が先に要る**
 
-測定と経緯は [docs/M1-RESULT.md](./docs/M1-RESULT.md)、
-実装計画は [docs/PLAN.md](./docs/PLAN.md) を参照してください。
+測定と経緯は [docs/ja/M1-RESULT.md](./docs/ja/M1-RESULT.md)、
+実装計画は [docs/ja/PLAN.md](./docs/ja/PLAN.md) を参照してください。
 
 ## 将来のビジョン: Semantic Audit
 

@@ -1,7 +1,7 @@
 """Semantic Browser CLI: discover -> choose -> follow, tracing to trace.jsonl.
 
 M1 is read-only: only GET links are ever followed, and templated links are
-excluded from candidates (docs/PLAN.md, Milestone 1).
+excluded from candidates (docs/en/PLAN.md, Milestone 1).
 """
 
 import argparse
@@ -90,7 +90,7 @@ def traverse(walker: Walker, engine: LayaMlxDecisionEngine, entry: str, args: ar
 
 def build_state(representation: dict, ruled_out: list[str]) -> tuple[str, bool]:
     """What is known, not where we are. URIs are excluded: the engine matches
-    a label against the route in the state and follows it back (docs/laya-mlx.md).
+    a label against the route in the state and follows it back (docs/en/laya-mlx.md).
 
     Transitions already taken are listed by what they offered, so that opening
     them again is visibly redundant. Only the last few are kept: the whole state

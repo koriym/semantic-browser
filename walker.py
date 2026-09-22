@@ -62,7 +62,7 @@ def extract_candidates(
     `REVISIT_LIMIT` times: a deterministic engine given the same state returns
     the same choice, so without a cap a wrong turn becomes a two-cycle. The cap
     is structural because a textual warning does not work - the engine does not
-    read negation (docs/laya-mlx.md)."""
+    read negation (docs/en/laya-mlx.md)."""
     candidates: list[Candidate] = []
     excluded: list[dict] = []
     seen_hrefs: set[str] = set()
@@ -144,7 +144,7 @@ def instance(rel: str, resource: dict, descriptors: dict[str, dict]) -> str:
 
 def state_digest(representation: dict) -> str:
     """Body values as key=value. The rel vocabulary and descriptor language of
-    the page are excluded (docs/laya-mlx.md, Spike: vocabulary in the state
+    the page are excluded (docs/en/laya-mlx.md, Spike: vocabulary in the state
     sways the choice toward itself, and a page's offers beside the candidate
     descriptions push the goal-answered NULP toward "already reached")."""
     return " ".join(
